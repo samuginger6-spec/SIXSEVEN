@@ -57,17 +57,25 @@ jobs:
               exit 1
           }
 
-      - name: Install Tailscale
+
+       - name: Install Tailscale
+        shell: powershell
         run: |
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
           $installerPath = "$env:TEMP\tailscale.msi"
-          
-Invoke-WebRequest -Uri $tsUrl -OutFile $installerPath
 
-$arguments = "/i "$installerPath" /quiet /norestart"
-Start-Process -FilePath "msiexec.exe" -ArgumentList $arguments -Wait
+          Invoke-WebRequest -Uri $tsUrl -OutFile $installerPath
 
-Remove-Item $installerPath -Force
+          $arguments = "/i "$installerPath" /quiet /norestart"
+          $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $arguments -Wait -PassThru
+
+          if ($process.ExitCode -ne 0) {
+              throw "La instalación falló. Código de salida: $($process.ExitCode)"
+          }
+
+          Remove-Item $installerPath -Force
+          Write-Host "Instalación completada correctamente."   
+
       - name: Establish Tailscale Connection
         run: |
           # Bring up Tailscale with the provided auth key and set a unique hostname
